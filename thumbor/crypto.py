@@ -130,3 +130,16 @@ class Signer:
 
     def signature(self, url):
         return base64.urlsafe_b64encode(hmac.new(self.security_key, unicode(url).encode('utf-8'), hashlib.sha1).digest())
+
+
+class AESCipher:
+    iv = '\x00' * 16
+
+    def encrypt(self, key, buffer):
+        cipher = AES.new(key, AES.MODE_CBC, AESCipher.iv)
+        return cipher.encrypt(pad(buffer))
+
+    def decrypt(self, key, buffer):
+        cipher = AES.new(key, AES.MODE_CBC, AESCipher.iv)
+        return unpad(cipher.decrypt(buffer))
+

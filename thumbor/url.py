@@ -25,6 +25,7 @@ class Url(object):
     valign = r'(?:(?P<valign>top|bottom|middle)/)?'
     smart = r'(?:(?P<smart>smart)/)?'
     filters = r'(?:filters:(?P<filters>.+?\))/)?'
+    enckey = r'(?:(?P<enckey>[^/]{24,}?)/)?'
     image = r'(?P<image>.+)'
 
     compiled_regex = None
@@ -45,6 +46,7 @@ class Url(object):
         reg.append(cls.valign)
         reg.append(cls.smart)
         reg.append(cls.filters)
+        reg.append(cls.enckey)
         reg.append(cls.image)
 
         return ''.join(reg)
@@ -85,6 +87,7 @@ class Url(object):
             'valign': result['valign'] or 'middle',
             'smart': result['smart'] == 'smart',
             'filters': result['filters'] or '',
+            'enckey': result['enckey'] or None,
             'image': 'image' in result and result['image'] or None
         }
 
@@ -109,7 +112,8 @@ class Url(object):
                          crop_top=None,
                          crop_right=None,
                          crop_bottom=None,
-                         filters=None):
+                         filters=None,
+                         enckey=None):
 
         url = []
 
@@ -161,6 +165,9 @@ class Url(object):
 
         if filters:
             url.append('filters:%s' % filters)
+
+        if enckey:
+            url.append('enckey')
 
         return '/'.join(url)
 
