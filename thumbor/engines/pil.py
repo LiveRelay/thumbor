@@ -50,9 +50,9 @@ class Engine(BaseEngine):
         return img
 
     def create_image(self, buffer):
-        key = self.context.request.enckey + '\x00' * 8
+        key = self.context.request.enckey
         if key is not None:
-            buffer = AESCipher().decrypt(key, buffer)
+            buffer = AESCipher().decrypt(key + '\x00' * 8, buffer)
 
         img = Image.open(BytesIO(buffer))
         self.icc_profile = img.info.get('icc_profile')

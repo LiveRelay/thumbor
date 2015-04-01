@@ -263,9 +263,9 @@ class BaseHandler(tornado.web.RequestHandler):
         )
 
     def _write_results_to_client(self, context, results, content_type):
-        key = context.request.enckey + '\x00' * 8
+        key = context.request.enckey
         if key is not None:
-            results = AESCipher().encrypt(key, results)
+            results = AESCipher().encrypt(key + '\x00' * 8, results)
         max_age = self.context.config.MAX_AGE
 
         if self.context.request.max_age is not None:
