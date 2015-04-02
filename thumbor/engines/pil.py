@@ -25,6 +25,7 @@ try:
 except ImportError:
     FILTERS_AVAILABLE = False
 
+from thumbor.crypto import AESCipher
 
 FORMATS = {
     '.jpg': 'JPEG',
@@ -49,6 +50,10 @@ class Engine(BaseEngine):
         return img
 
     def create_image(self, buffer):
+        key = self.context.request.enckey
+        if key:
+            buffer = AESCipher.decrypt(key, buffer)
+
         img = Image.open(BytesIO(buffer))
         self.icc_profile = img.info.get('icc_profile')
         self.transparency = img.info.get('transparency')
