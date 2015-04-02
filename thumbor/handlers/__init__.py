@@ -25,6 +25,8 @@ from thumbor.engines.json_engine import JSONEngine
 from thumbor.utils import logger
 import thumbor.filters
 
+from thumbor.crypto import AESCipher
+
 CONTENT_TYPE = {
     '.jpg': 'image/jpeg',
     '.jpeg': 'image/jpeg',
@@ -261,6 +263,9 @@ class BaseHandler(tornado.web.RequestHandler):
         )
 
     def _write_results_to_client(self, context, results, content_type):
+        key = context.request.enckey
+        if key:
+            results = AESCipher.encrypt(key, results)
         max_age = self.context.config.MAX_AGE
 
         if self.context.request.max_age is not None:
