@@ -16,6 +16,7 @@ from Crypto.Cipher import AES
 
 from thumbor.url import Url
 
+unpad = lambda s : s[:-ord(s[len(s)-1:])]
 
 class Cryptor(object):
     def __init__(self, security_key):
