@@ -17,6 +17,8 @@ from thumbor.filters import FiltersFactory
 from thumbor.utils import logger
 from thumbor.url import Url
 import statsd
+import requests
+import redis
 
 class ThumborStatsClient(statsd.StatsClient):
 
@@ -115,6 +117,7 @@ class ServerParameters(object):
 class RequestParameters:
 
     def __init__(self,
+                 config=None,
                  debug=False,
                  meta=False,
                  trim=None,
@@ -200,11 +203,29 @@ class RequestParameters:
         self.hash = hash
         self.prevent_result_storage = False
         self.unsafe = unsafe == 'unsafe' or unsafe is True
-        self.enckey = enckey
+        self.enckey = None
         self.format = None
         self.accepts_webp = accepts_webp
         self.max_bytes = None
         self.max_age = max_age
+
+        if enckey:
+            redis_service = redis.Redis(config.REDIS_HOST)
+            redis_resp = redis_service.get(enckey)
+            if redis_resp:
+                self.enckey = redis_resp
+                print '\nGot key from Redis: ' + redis_resp
+
+            else:
+                url = config.REST_API_URL + '/wall/' + enckey + '/meta'
+                headers = {'X-Graphiti-Rest-Api-Key': config.REST_API_KEY}
+                resp = requests.get(url, headers = headers)
+                if (resp.status_code == 200):
+                    self.enckey = resp.json['originatorId']
+                    redis_service.set(enckey, self.enckey)
+                    print '\nGot key from CDP: ' + self.enckey
+                else:
+                    print '\nCDP response: ' + str(resp.status_code)
 
         if request:
             if request.query:

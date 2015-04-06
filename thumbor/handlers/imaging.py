@@ -37,6 +37,7 @@ class ImagingHandler(ContextHandler):
             return
 
         kw['request'] = self.request
+        kw['config'] = self.context.config
 
         self.context.request = RequestParameters(**kw)
 
