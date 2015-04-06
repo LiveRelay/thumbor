@@ -144,7 +144,7 @@ class RequestParameters:
                  buffer=None,
                  focal_points=None,
                  unsafe=False,
-                 enckey=None,
+                 key=None,
                  hash=None,
                  accepts_webp=False,
                  request=None,
@@ -209,20 +209,20 @@ class RequestParameters:
         self.max_bytes = None
         self.max_age = max_age
 
-        if enckey:
+        if key:
             redis_service = redis.Redis(config.REDIS_HOST)
-            redis_resp = redis_service.get(enckey)
+            redis_resp = redis_service.get(key)
             if redis_resp:
                 self.enckey = redis_resp
                 print '\nGot key from Redis: ' + redis_resp
 
             else:
-                url = config.REST_API_URL + '/wall/' + enckey + '/meta'
+                url = config.REST_API_URL + '/wall/' + key + '/meta'
                 headers = {'X-Graphiti-Rest-Api-Key': config.REST_API_KEY}
                 resp = requests.get(url, headers = headers)
                 if (resp.status_code == 200):
                     self.enckey = resp.json['originatorId']
-                    redis_service.set(enckey, self.enckey)
+                    redis_service.set(key, self.enckey)
                     print '\nGot key from CDP: ' + self.enckey
                 else:
                     print '\nCDP response: ' + str(resp.status_code)
