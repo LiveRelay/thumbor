@@ -12,13 +12,16 @@ from os.path import abspath, exists
 import tornado
 from concurrent.futures import ThreadPoolExecutor, Future
 import functools
+import ujson
 
 from thumbor.filters import FiltersFactory
 from thumbor.utils import logger
 from thumbor.url import Url
+from tornado import gen
 import statsd
-import requests
 import redis
+
+import graphiti_api.client
 
 class ThumborStatsClient(statsd.StatsClient):
 
@@ -211,21 +214,13 @@ class RequestParameters:
 
         if key:
             redis_service = redis.Redis(config.REDIS_HOST)
-            redis_resp = redis_service.get(key)
-            if redis_resp:
-                self.enckey = redis_resp
-                print '\nGot key from Redis: ' + redis_resp
+            redis_response = redis_service.get(key)
+            if redis_response:
+                self.enckey = redis_response
 
+                logger.debug('Got key from Redis: {key}'.format(key=redis_response))
             else:
-                url = config.REST_API_URL + '/wall/' + key + '/meta'
-                headers = {'X-Graphiti-Rest-Api-Key': config.REST_API_KEY}
-                resp = requests.get(url, headers = headers)
-                if (resp.status_code == 200):
-                    self.enckey = resp.json['originatorId']
-                    redis_service.set(key, self.enckey)
-                    print '\nGot key from CDP: ' + self.enckey
-                else:
-                    print '\nCDP response: ' + str(resp.status_code)
+                self.fetch_originator_id(key, config)
 
         if request:
             if request.query:
@@ -237,6 +232,31 @@ class RequestParameters:
     def int_or_0(self, value):
         return 0 if value is None else int(value)
 
+    @gen.coroutine
+    def fetch_originator_id(self, key='', config=None):
+        if not key or not config:
+            return
+
+        response = None
+        try:
+            url = '{base_url}/wall/{key}/meta'.format(base_url=config.REST_API_URL, key=key)
+            response = yield graphiti_api.client.fetch(url, config.REST_API_KEY)
+        except HTTPError, e:
+            logger.error(e)
+
+        if response and response.code == 200:
+            try:
+                json = ujson.loads(response.body)
+                self.enckey = json['originatorId']
+                redis_service.set(key, self.enckey)
+
+                logger.debug('Got key from CDP: {key}'.format(key=self.enckey))
+            except ValueError:
+                logger.error('Parse response from REST failed.')
+        elif response:
+            logger.debug('CDP response: {status_code}'.format(status_code=response.code))
+        else:
+            logger.error('Fetch from REST failed.')
 
 class ContextImporter:
     def __init__(self, context, importer):
