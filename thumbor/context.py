@@ -213,8 +213,8 @@ class RequestParameters:
         self.max_age = max_age
 
         if key:
-            redis_service = redis.Redis(config.REDIS_HOST)
-            redis_response = redis_service.get(key)
+            self._redis_service = redis.Redis(config.REDIS_HOST)
+            redis_response = self._redis_service.get(key)
             if redis_response:
                 self.enckey = redis_response
 
@@ -248,7 +248,7 @@ class RequestParameters:
             try:
                 json = ujson.loads(response.body)
                 self.enckey = json['originatorId']
-                redis_service.set(key, self.enckey)
+                self._redis_service.set(key, self.enckey)
 
                 logger.debug('Got key from CDP: {key}'.format(key=self.enckey))
             except ValueError:
